@@ -1,0 +1,96 @@
+server:
+  port: 8082
+  servlet:
+    context-path: /api
+    session:
+      cookie:
+        max-age: 2592000
+
+spring:
+  application:
+    name: yu-picture-backend
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  # 空间图片分表
+  shardingsphere:
+    datasource:
+      names: yu_picture
+      yu_picture:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: jdbc:mysql://localhost:3306/yu_picture?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+        username: ${MYSQL_USERNAME:root}
+        password: ${MYSQL_PASSWORD:}
+    rules:
+      sharding:
+        tables:
+          picture:
+            actual-data-nodes: yu_picture.picture
+            table-strategy:
+              standard:
+                sharding-column: spaceId
+                sharding-algorithm-name: picture_sharding_algorithm
+        sharding-algorithms:
+          picture_sharding_algorithm:
+            type: CLASS_BASED
+            props:
+              strategy: standard
+              algorithmClassName: com.yupi.manager.sharding.PictureShardingAlgorithm
+    props:
+      sql-show: true
+
+  # redis 连接
+  redis:
+    database: 1
+    host: 127.0.0.1
+    port: 6379
+    timeout: 5000
+
+  # session 配置
+  session:
+    store-type: redis
+    timeout: 2592000
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: false
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    enable-sql-runner: true
+    db-config:
+      logic-delete-field: isDelete
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 接口文档的配置
+knife4j:
+  enable: true
+  openapi:
+    title: 接口文档
+    description:
+    concat: 八一菜刀
+    url: https://docs.xiaominfo.com
+    version: 1.0
+    group:
+      test1:
+        group-name: 默认分组
+        api-rule: package
+        api-rule-resources:
+          - com.yupi.controller
+
+# 腾讯云储存配置（密钥请通过环境变量或 application-local.yml 提供，不要提交到仓库）
+cos:
+  client:
+    host: ${COS_HOST:}
+    secret-id: ${COS_SECRET_ID:}
+    secret-key: ${COS_SECRET_KEY:}
+    region: ${COS_REGION:ap-shanghai}
+    bucket: ${COS_BUCKET:}
+
+# 阿里云 AI 配置（密钥请通过环境变量或 application-local.yml 提供，不要提交到仓库）
+aliYunOssAi:
+  apiKey: ${ALIYUN_AI_API_KEY:}
+  tokenCost: 10 # 每次调用消耗的 token 数量

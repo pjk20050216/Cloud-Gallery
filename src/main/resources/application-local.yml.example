@@ -1,0 +1,19 @@
+# 本地配置模板
+#
+# 使用方法：复制本文件为 application-local.yml（该文件已被 .gitignore 忽略），
+# 然后填入你自己的密钥。切勿把真实密钥提交到仓库。
+#
+#     cp src/main/resources/application-local.yml.example src/main/resources/application-local.yml
+#
+# 也可以改用环境变量，见 README.md。
+
+cos:
+  client:
+    host: https://<your-bucket-appid>.cos.<region>.myqcloud.com
+    secretId: <your-tencent-cos-secret-id>
+    secretKey: <your-tencent-cos-secret-key>
+    region: ap-shanghai
+    bucket: <your-bucket-name>
+
+aliyunai:
+  apikey: <your-aliyun-dashscope-api-key>
