@@ -1,11 +1,17 @@
 # 本地配置模板
 #
 # 使用方法：复制本文件为 application-local.yml（该文件已被 .gitignore 忽略），
-# 然后填入你自己的密钥。切勿把真实密钥提交到仓库。
+# 然后填入你自己的配置。切勿把真实密钥提交到仓库。
 #
 #     cp src/main/resources/application-local.yml.example src/main/resources/application-local.yml
 #
+# 项目默认激活 local profile，会自动读取 application-local.yml。
 # 也可以改用环境变量，见 README.md。
+
+spring:
+  datasource:
+    username: root
+    password: <your-mysql-password>
 
 cos:
   client:
@@ -15,5 +21,14 @@ cos:
     region: ap-shanghai
     bucket: <your-bucket-name>
 
-aliyunai:
-  apikey: <your-aliyun-dashscope-api-key>
+# 阿里云百炼（千问）密钥 —— 智能体与 AI 扩图都依赖它
+# 注意键名是 aliYunOssAi.apiKey（不是 aliyunai.apikey）
+aliYunOssAi:
+  apiKey: <your-aliyun-dashscope-api-key>
+
+# 智能体可选配置（不填则使用 application.yml 中的默认值）
+# agent:
+#   llm:
+#     api-key: <your-dashscope-api-key>   # 留空则回退到上面的 aliYunOssAi.apiKey
+#     default-model: qwen-plus            # 对话与工具调用
+#     router-model: qwen-turbo            # 意图分类与摘要压缩
