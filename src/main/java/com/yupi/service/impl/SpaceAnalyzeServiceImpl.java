@@ -18,6 +18,7 @@ import com.yupi.service.PictureService;
 import com.yupi.service.SpaceAnalyzeService;
 import com.yupi.service.SpaceService;
 import com.yupi.service.UserService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -34,9 +35,15 @@ public class SpaceAnalyzeServiceImpl extends ServiceImpl<SpaceMapper, Space>
     private UserService userService;
 
     @Resource
+    @Lazy
+    // SpaceService -> SpaceAnalyzeService，SpaceAnalyzeService -> SpaceService，
+    // 存在循环依赖；Spring Boot 2.6+ 默认禁止循环引用，这里用 @Lazy 打破（与 SpaceUserServiceImpl 的处理方式一致）
     private SpaceService spaceService;
 
     @Resource
+    @Lazy
+    // PictureService -> SpaceService -> SpaceAnalyzeService -> PictureService，
+    // 同样是循环依赖，用 @Lazy 打破
     private PictureService pictureService;
 
     // 1、对空间使用情况分析

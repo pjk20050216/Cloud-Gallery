@@ -38,7 +38,7 @@ public class AliYunAiApi {
     private String apiKey;
 
     // API 调用消耗的 token
-    @Value("${aliYunOssAi.tokenCost")
+    @Value("${aliYunOssAi.tokenCost:10}")
     private Integer tokenCost;
 
     // 因为这个 AI 调用消耗的 token 是与会员空间有关的

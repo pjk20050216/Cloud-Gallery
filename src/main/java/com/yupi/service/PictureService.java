@@ -48,6 +48,15 @@ public interface PictureService extends IService<Picture> {
     Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest,
                                  User loginUser);
 
+    /**
+     * 批量抓取图片（带进度回调，供异步任务使用）
+     *
+     * @param onProgress 每成功上传一张回调一次，参数为已成功数量；可为 null
+     */
+    Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest,
+                                 User loginUser,
+                                 java.util.function.Consumer<Integer> onProgress);
+
     // 清除 COS 中的图片文件
     void clearPictureFile(Picture picture);
 

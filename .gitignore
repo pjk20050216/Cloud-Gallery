@@ -37,3 +37,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### DSH 本地工具产物（权限修复备份等，不应入库） ###
+.dsh-acl/

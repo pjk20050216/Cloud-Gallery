@@ -174,14 +174,24 @@ public class StpInterfaceImpl implements StpInterface {
         SpaceUserAuthContext authRequest;
 
         // 获取请求内容
-        if(ContentType.JSON.getValue().equals(contentType)){ // 判断请求参数是不是 json
+        //
+        // ⚠️ 这里不能直接 equals("application/json")：
+        // 浏览器/前端常常发 "application/json; charset=utf-8"，
+        // 用 equals 会判断失败 → 走到 else 分支读 paramMap（POST 请求为空）
+        // → authRequest 所有字段为 null → isAllFieldsNull 返回 true → 直接放行 ADMIN_PERMISSIONS。
+        // 这会让所有带 @SaSpaceCheckPermission 的 POST 接口失去权限校验（真实的越权漏洞）。
+        if (isJsonRequest(contentType)) {
             String body = ServletUtil.getBody(request); // 拿到所有请求体
             // 如果 body 为 json 格式数据则直接转换然后返回
-            authRequest = JSONUtil.toBean(body, SpaceUserAuthContext.class);
-
+            authRequest = StrUtil.isBlank(body)
+                    ? new SpaceUserAuthContext()
+                    : JSONUtil.toBean(body, SpaceUserAuthContext.class);
         } else { // 为 get 请求，没有 json 对象
             Map<String, String> paramMap = ServletUtil.getParamMap(request);
             authRequest = BeanUtil.toBean(paramMap, SpaceUserAuthContext.class);
+        }
+        if (authRequest == null) {
+            authRequest = new SpaceUserAuthContext();
         }
 
         // 根据请求路径区分 id 字段的含义（因为有的为 spaceId，有的为 pictureId）
@@ -224,5 +234,18 @@ public class StpInterfaceImpl implements StpInterface {
                 // 判断是否所有字段为空，是的话返回 true
                 .allMatch(ObjectUtil::isEmpty);
 
+    }
+
+    /**
+     * 判断是否 JSON 请求。
+     * <p>
+     * 必须用前缀匹配而不是 equals，因为实际请求头常见的是
+     * {@code application/json; charset=utf-8}。
+     */
+    private boolean isJsonRequest(String contentType) {
+        if (StrUtil.isBlank(contentType)) {
+            return false;
+        }
+        return StrUtil.startWithIgnoreCase(contentType.trim(), ContentType.JSON.getValue());
     }
 }

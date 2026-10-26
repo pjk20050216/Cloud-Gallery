@@ -9,6 +9,40 @@ server:
 spring:
   application:
     name: yu-picture-backend
+
+  # 默认使用 local 配置（application-local.yml 已被 .gitignore 忽略，用于放本地密钥/密码）
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  # MySQL 数据源
+  # ⚠️ 说明：分库分表（下面的 spring.shardingsphere）在启动类里被
+  #    @SpringBootApplication(exclude = ShardingSphereAutoConfiguration.class) 排除了，
+  #    导致原来写在 spring.shardingsphere.datasource 下的数据源配置完全失效，
+  #    Spring Boot 于是退化成内嵌 H2 内存库（空库，所有 SQL 都会报"表不存在"）。
+  #    这里显式配置 MySQL 数据源。若以后重新启用 ShardingSphere，请注释掉本段。
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/yu_picture?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:}
+
+  # 项目服务层存在多处互相注入（SpaceService ↔ SpaceAnalyzeService、
+  # PictureService ↔ SpaceService ↔ SpaceAnalyzeService），
+  # 且 PictureServiceImpl 内部用 @Bean 定义了 taskExecutor（@Bean 写在 @Service 中，
+  # 会让该 Bean 同时充当工厂，形成自引用）。
+  # Spring Boot 2.6+ 默认禁止循环引用，会导致应用无法启动，这里显式放开。
+  main:
+    allow-circular-references: true
+
+  # SSE 异步请求超时（智能体流式对话）
+  mvc:
+    pathmatch:
+      # springfox(knife4j) 2.10.5 与 Spring Boot 2.6+ 默认的 PathPatternParser 不兼容，
+      # 不指定会抛 NullPointerException 导致启动失败
+      matching-strategy: ant_path_matcher
+    async:
+      request-timeout: 180000
+
   servlet:
     multipart:
       max-file-size: 10MB
@@ -67,7 +101,13 @@ mybatis-plus:
 
 # 接口文档的配置
 knife4j:
-  enable: true
+  # ⚠️ 暂时关闭：springfox 2.10.5 与 Spring Boot 2.7 不兼容，
+  # 开启后启动阶段会抛 NullPointerException：
+  #   springfox.documentation.spring.web.WebMvcPatternsRequestConditionWrapper.getPatterns
+  # 这是项目既有问题（与本项目新增的智能体功能无关：移除全部 agent 代码后同样复现）。
+  # 修复方向：迁移到 springdoc-openapi，或为 springfox 定制 WebMvcRequestHandlerProvider。
+  # 修好后改回 true 即可，接口文档地址 /api/doc.html
+  enable: false
   openapi:
     title: 接口文档
     description:
@@ -94,3 +134,39 @@ cos:
 aliYunOssAi:
   apiKey: ${ALIYUN_AI_API_KEY:}
   tokenCost: 10 # 每次调用消耗的 token 数量
+
+# 智能体配置（模型统一使用阿里云百炼的千问系列）
+agent:
+  enabled: true
+  llm:
+    # 未单独配置时自动回退到 aliYunOssAi.apiKey
+    api-key: ${DASHSCOPE_API_KEY:}
+    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    # 意图分类用轻量模型（P2 启用）
+    router-model: qwen-turbo
+    # 专家智能体默认模型
+    default-model: qwen-plus
+    timeout-seconds: 60
+    max-retries: 1
+    temperature: 0.3
+    max-tokens: 2048
+  chat:
+    max-steps: 8            # 单轮最多工具调用轮次
+    max-history-rounds: 10  # 携带的历史轮数
+    tool-result-max-chars: 500 # 工具结果回灌给模型时的最大字符数
+    sse-timeout-ms: 180000
+    enable-llm-router: true # 规则未命中时是否用 LLM 做意图分类
+    max-handoff-hops: 2     # 单轮最多转交次数，防止智能体乒乓
+  confirm:
+    token-ttl-seconds: 300        # 高危操作确认令牌有效期
+    idempotency-ttl-seconds: 600  # 工具幂等键有效期
+    pending-turn-ttl-seconds: 600 # 待确认推理现场保留时长
+  # 上下文压缩（分层上下文 + 增量摘要 + 结构化记忆）
+  memory:
+    enabled: true
+    max-context-tokens: 6000      # 历史上下文 token 预算，超过就压缩
+    keep-recent-tokens: 2500      # 压缩时保留多少 token 的最近原文
+    summary-max-chars: 800        # 摘要最大字数
+    summary-model: qwen-turbo     # 摘要用小模型省钱
+    max-summary-input-tokens: 3000 # 单次送去压缩的输入上限
+    max-single-message-tokens: 1500 # 单条消息上限，超长会被截断

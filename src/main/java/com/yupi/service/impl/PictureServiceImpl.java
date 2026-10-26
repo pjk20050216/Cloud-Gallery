@@ -93,28 +93,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     private AliYunAiApi aliYunAiApi;
 
     // 注入异步线程池，这个是用于批量抓取图片的
+    // 线程池的定义已移到 com.yupi.configuration.TaskExecutorConfig
     @Resource(name = "taskExecutor")
     private Executor taskExecutor;
-
-    // 自己配置个线程池，不然上面的 taskExecutor 会使用默认的线程池（这个线程池还是共用的）
-    @Bean("taskExecutor")
-    public Executor taskExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        // 核心线程数
-        executor.setCorePoolSize(10);
-        // 最大线程数
-        executor.setMaxPoolSize(20);
-        // 队列容量
-        executor.setQueueCapacity(200);
-        // 线程名前缀
-        executor.setThreadNamePrefix("async-service-");
-        // 拒绝策略：由调用线程处理该任务
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-        // 等待所有任务结束后再关闭线程池
-        executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.initialize();
-        return executor;
-    }
 
     // 图片校验
     @Override
@@ -240,12 +221,16 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             // this.clearPictureFile(picture); 如果是更新操作可以清理图片资源
             ThrowUtils.throwIf(!saveOrUpdate, ErrorCode.OPERATION_ERROR, "数据库操作失败");
             // 更新空间的可使用额度，同时也要使用事务，传图片和更新额度是一起的
-            boolean update = spaceService.lambdaUpdate()
-                    .eq(Space::getId, finalSpaceId)
-                    .setSql("totalSize = totalSize + " + picture.getPicSize()) // 类似与数据库执行语句（简单化了一些）
-                    .setSql("totalCount = totalCount + 1")
-                    .update();
-            ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "空间更新失败");
+            // 注意：spaceId 为空表示公共图库，此时不需要（也不能）更新空间统计，
+            // 否则 eq(Space::getId, null) 会更新 0 行并抛"空间更新失败"
+            if (finalSpaceId != null) {
+                boolean update = spaceService.lambdaUpdate()
+                        .eq(Space::getId, finalSpaceId)
+                        .setSql("totalSize = totalSize + " + picture.getPicSize()) // 类似与数据库执行语句（简单化了一些）
+                        .setSql("totalCount = totalCount + 1")
+                        .update();
+                ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "空间更新失败");
+            }
             return picture; // 随便返回一个
         });
 
@@ -316,8 +301,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                 queryWrapper.like("tags", "\"" + tag + "\"");
             }
         }
-        // 排序
-        queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
+        // 排序（sortOrder 可能为 null，必须判空，否则这里会 NPE）
+        if (StrUtil.isNotEmpty(sortField)) {
+            queryWrapper.orderBy(true, "ascend".equals(sortOrder), sortField);
+        }
         return queryWrapper;
     }
 
@@ -423,6 +410,14 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     // 批量获取图片，其中使用的是
     @Override
     public Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser) {
+        return uploadPictureByBatch(pictureUploadByBatchRequest, loginUser, null);
+    }
+
+    // 批量获取图片（带进度回调）
+    @Override
+    public Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest,
+                                        User loginUser,
+                                        java.util.function.Consumer<Integer> onProgress) {
         // 1、校验参数
         String searchText = pictureUploadByBatchRequest.getSearchText();
         Integer count = pictureUploadByBatchRequest.getCount();
@@ -493,6 +488,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 用于收集异步任务结果的列表
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
+        // 成功上传计数（供进度回调使用）
+        final java.util.concurrent.atomic.AtomicInteger successCount =
+                new java.util.concurrent.atomic.AtomicInteger(0);
+
         // 遍历元素列表，提交异步任务
         for (int i = 0; i < subList.size(); i++) {
             Element element = subList.get(i);
@@ -521,6 +520,16 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                     // 执行上传
                     PictureVO pictureVO = this.uploadPicture(fileUrl, request, loginUser);
                     log.info("图片上传成功：图片 id：{}", pictureVO.getId());
+                    // 成功计数 + 进度回调（多线程并发，用原子变量）
+                    if (onProgress != null) {
+                        int done = successCount.incrementAndGet();
+                        try {
+                            onProgress.accept(done);
+                        } catch (Exception e) {
+                            // 进度回调里的异常（例如任务被取消）不应被吞掉，直接中断
+                            throw new RuntimeException(e.getMessage(), e);
+                        }
+                    }
                 } catch (Exception e) {
                     log.error("图片上传失败", e);
                     // 注意：这里不抛出异常，以免影响其他任务
@@ -537,8 +546,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             log.error("批量上传任务执行异常", e);
         }
 
-        // 返回实际处理的任务数量（这里简化处理，直接返回限制数量，若需精确成功数可使用原子计数器）
-        return limit;
+        // 返回实际成功上传的数量
+        return successCount.get();
 
     }
 
@@ -579,12 +588,15 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         transactionTemplate.execute(status -> {
             boolean result = this.removeById(pictureId);
             ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "数据库操作失败");
-            boolean update = spaceService.lambdaUpdate()
-                    .eq(Space::getId, oldPicture.getSpaceId())
-                    .setSql("totalSize = totalSize - " + oldPicture.getPicSize()) // 类似与数据库执行语句（简单化了一些）
-                    .setSql("totalCount = totalCount - 1")
-                    .update();
-            ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "空间更新失败");
+            // 公共图库（spaceId 为空）不涉及空间统计，跳过，否则会更新 0 行并抛异常
+            if (oldPicture.getSpaceId() != null) {
+                boolean update = spaceService.lambdaUpdate()
+                        .eq(Space::getId, oldPicture.getSpaceId())
+                        .setSql("totalSize = totalSize - " + oldPicture.getPicSize()) // 类似与数据库执行语句（简单化了一些）
+                        .setSql("totalCount = totalCount - 1")
+                        .update();
+                ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "空间更新失败");
+            }
             return true; // 随便返回一个
         });
         this.clearPictureFile(oldPicture);

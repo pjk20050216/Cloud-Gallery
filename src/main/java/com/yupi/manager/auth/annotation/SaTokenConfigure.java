@@ -15,11 +15,21 @@ import javax.annotation.Resource;
 
 @Configuration
 public class SaTokenConfigure implements WebMvcConfigurer {
-    // 注册 sa-token 拦截器，打开注解解式鉴权功能
+    // 注册 sa-token 拦截器，打开注解式鉴权功能
+    //
+    // ⚠️ 这里必须写 "/**" 而不是 "/api/**"：
+    // 项目的 server.servlet.context-path 是 /api，而拦截器路径是**相对 context-path** 匹配的
+    // （Spring 用 getLookupPathForRequest 取 servlet 内路径，不含 context path）。
+    // 写成 "/api/**" 会导致拦截器永远不匹配，所有 @SaCheckLogin / @SaSpaceCheckPermission
+    // 注解形同虚设——这是一个真实存在过的鉴权漏洞。
     @Override
-    public void addInterceptors(InterceptorRegistry registry) {;
+    public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new SaInterceptor())
-                .addPathPatterns("/api/**");
+                .addPathPatterns("/**")
+                .excludePathPatterns(
+                        // 智能体对话前端（静态资源）
+                        "/agent-ui/**"
+                );
     }
 
     @PostConstruct

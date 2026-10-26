@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>云图库 · AI 助手</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<!-- ============ 登录 ============ -->
+<div class="login-mask" id="loginMask">
+    <form class="login-card" id="loginForm">
+        <h1>云图库 · AI 助手</h1>
+        <p class="login-sub">登录后即可用自然语言管理你的图片</p>
+        <label>
+            <span>账号</span>
+            <input type="text" id="account" placeholder="userAccount" autocomplete="username" required>
+        </label>
+        <label>
+            <span>密码</span>
+            <input type="password" id="password" placeholder="password" autocomplete="current-password" required>
+        </label>
+        <button type="submit" class="btn-primary" id="loginBtn">登录</button>
+        <div class="login-error" id="loginError"></div>
+    </form>
+</div>
+
+<!-- ============ 主界面 ============ -->
+<div class="app" id="app" hidden>
+
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+        <div class="sidebar-head">
+            <div class="brand">
+                <span class="brand-dot"></span>
+                <span>云图库 AI</span>
+            </div>
+            <button class="icon-btn" id="logoutBtn" title="退出登录">⏻</button>
+        </div>
+
+        <button class="btn-new" id="newChatBtn">
+            <span>＋</span> 新建对话
+        </button>
+
+        <div class="side-section">
+            <div class="side-title">最近对话</div>
+            <div class="session-list" id="sessionList"></div>
+        </div>
+
+        <div class="side-section">
+            <div class="side-title">
+                <span>异步任务</span>
+                <button class="mini-btn" id="refreshTasksBtn" title="刷新">↻</button>
+            </div>
+            <div class="task-list" id="taskList"></div>
+        </div>
+
+        <div class="sidebar-foot">
+            <div class="user-chip" id="userChip"></div>
+            <div class="agent-legend" id="agentLegend"></div>
+        </div>
+    </aside>
+
+    <!-- 主区 -->
+    <main class="main">
+        <header class="chat-head">
+            <div class="chat-title" id="chatTitle">新对话</div>
+            <div class="agent-badge" id="agentBadge" hidden></div>
+        </header>
+
+        <div class="messages" id="messages">
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon">🖼️</div>
+                <h2>有什么可以帮你？</h2>
+                <p>试试这些：</p>
+                <div class="suggestions" id="suggestions"></div>
+            </div>
+        </div>
+
+        <div class="composer">
+            <div class="attach-bar" id="attachBar" hidden></div>
+            <div class="composer-box">
+                <button class="icon-btn attach-btn" id="attachBtn" title="上传图片">📎</button>
+                <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" hidden>
+                <textarea id="input" rows="1" placeholder="说点什么，例如：我有哪些空间？（Enter 发送，Shift+Enter 换行）"></textarea>
+                <button class="send-btn" id="sendBtn" title="发送">↑</button>
+            </div>
+            <div class="composer-tip" id="composerTip"></div>
+        </div>
+    </main>
+</div>
+
+<!-- ============ 确认弹窗 ============ -->
+<div class="modal-mask" id="confirmMask" hidden>
+    <div class="modal">
+        <div class="modal-icon">⚠️</div>
+        <h3>需要确认</h3>
+        <p class="modal-desc" id="confirmDesc"></p>
+        <pre class="modal-args" id="confirmArgs"></pre>
+        <div class="modal-actions">
+            <button class="btn-ghost" id="confirmReject">取消</button>
+            <button class="btn-danger" id="confirmApprove">确认执行</button>
+        </div>
+    </div>
+</div>
+
+<script src="./app.js"></script>
+</body>
+</html>
