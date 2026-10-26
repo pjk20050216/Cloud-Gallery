@@ -13,6 +13,8 @@ import com.yupi.model.entity.User;
 import com.yupi.model.entity.UserBanRecord;
 import com.yupi.model.vo.UserBanRecordVO;
 import com.yupi.service.UserBanService;
+import com.yupi.service.UserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -27,7 +29,10 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * 封禁体系 + 智能体联动测试。
  * <p>
- * 运行：mvn -o test -Dtest=UserBanTest
+ * 测试数据自给自足：{@link #prepareTestUser()} 会在用例前确保被测试用户存在，
+ * 不依赖手工往数据库塞数据（之前因为清理数据导致这里连挂 3 个用例）。
+ * <p>
+ * 运行：mvn test -Dtest=UserBanTest
  */
 @SpringBootTest
 class UserBanTest {
@@ -39,10 +44,30 @@ class UserBanTest {
     private UserBanService userBanService;
 
     @Resource
+    private UserService userService;
+
+    @Resource
     private ToolGuard toolGuard;
 
     @Resource
     private ToolRegistry toolRegistry;
+
+    /**
+     * 确保被测试用户存在（幂等），避免依赖外部手工准备数据
+     */
+    @BeforeEach
+    void prepareTestUser() {
+        if (userService.getById(BANNED_USER) == null) {
+            User user = new User();
+            user.setId(BANNED_USER);
+            user.setUserAccount("bannedtest");
+            user.setUserPassword("test12345");
+            user.setUserName("封禁测试用户");
+            user.setUserRole("user");
+            user.setIsDelete(0);
+            userService.save(user);
+        }
+    }
 
     private AgentContext bannedContext() {
         return AgentContext.builder()

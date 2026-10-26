@@ -26,10 +26,14 @@
             <version>5.8.26</version>
         </dependency>
 
-        <!-- 接口文档 -->
+        <!-- 接口文档
+             使用 openapi3 版本（底层是 springdoc），而不是 openapi2（底层 springfox 2.10.5）。
+             springfox 2.10.5 与 Spring Boot 2.6+ 的 PathPatternParser 不兼容，
+             启动会抛 WebMvcPatternsRequestConditionWrapper.getPatterns 空指针，
+             导致整个应用起不来。springdoc 没有这个问题。 -->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi2-spring-boot-starter</artifactId>
+            <artifactId>knife4j-openapi3-spring-boot-starter</artifactId>
             <version>4.4.0</version>
         </dependency>
 

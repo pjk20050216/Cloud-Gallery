@@ -99,27 +99,28 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
-# 接口文档的配置
+# 接口文档的配置（Knife4j 4.x + OpenAPI 3，底层 springdoc）
+# 访问地址：/api/doc.html
 knife4j:
-  # ⚠️ 暂时关闭：springfox 2.10.5 与 Spring Boot 2.7 不兼容，
-  # 开启后启动阶段会抛 NullPointerException：
-  #   springfox.documentation.spring.web.WebMvcPatternsRequestConditionWrapper.getPatterns
-  # 这是项目既有问题（与本项目新增的智能体功能无关：移除全部 agent 代码后同样复现）。
-  # 修复方向：迁移到 springdoc-openapi，或为 springfox 定制 WebMvcRequestHandlerProvider。
-  # 修好后改回 true 即可，接口文档地址 /api/doc.html
-  enable: false
-  openapi:
-    title: 接口文档
-    description:
-    concat: 八一菜刀
-    url: https://docs.xiaominfo.com
-    version: 1.0
-    group:
-      test1:
-        group-name: 默认分组
-        api-rule: package
-        api-rule-resources:
-          - com.yupi.controller
+  enable: true
+  setting:
+    language: zh_cn
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  # 分组：扫描 com.yupi.controller 与 com.yupi.agent.controller
+  group-configs:
+    - group: 默认分组
+      paths-to-match: /**
+      packages-to-scan: com.yupi.controller
+    - group: 智能体
+      paths-to-match: /**
+      packages-to-scan: com.yupi.agent.controller
 
 # 腾讯云储存配置（密钥请通过环境变量或 application-local.yml 提供，不要提交到仓库）
 cos:

@@ -192,12 +192,12 @@ mvn spring-boot:run
 | --- | --- |
 | 服务根路径 | <http://localhost:8082/api> |
 | **智能体对话界面** | <http://localhost:8082/api/agent-ui/> |
-| 接口文档 | `doc.html`（**当前已关闭**，见下方说明） |
+| **接口文档（Knife4j）** | <http://localhost:8082/api/doc.html> |
 
-> 接口文档暂时不可用：springfox 2.10.5 与 Spring Boot 2.7 不兼容，启动会抛
-> `WebMvcPatternsRequestConditionWrapper.getPatterns` NPE。
-> 已在 `application.yml` 中把 `knife4j.enable` 置为 `false`。
-> 修复方向：迁移到 springdoc-openapi，或为 springfox 定制 `WebMvcRequestHandlerProvider`。
+> 接口文档使用 Knife4j 4.4.0 + OpenAPI 3（底层 springdoc）。
+> 注意不要换回 `knife4j-openapi2-spring-boot-starter`——它底层的 springfox 2.10.5
+> 与 Spring Boot 2.6+ 的 `PathPatternParser` 不兼容，启动会抛
+> `WebMvcPatternsRequestConditionWrapper.getPatterns` 空指针，导致应用起不来。
 
 ---
 
