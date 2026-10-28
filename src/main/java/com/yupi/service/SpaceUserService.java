@@ -7,7 +7,6 @@ import com.yupi.model.entity.SpaceUser;
 import com.yupi.model.vo.SpaceUserVO;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import io.swagger.models.auth.In;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;

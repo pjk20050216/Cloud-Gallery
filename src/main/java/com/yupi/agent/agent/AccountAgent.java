@@ -16,7 +16,7 @@ import java.util.List;
 public class AccountAgent implements SubAgent {
 
     private static final String SYSTEM_PROMPT = String.join("\n",
-            "你是「云图库」的账号助手，负责回答账号相关的问题。",
+            "你是「智能图库系统」的账号助手，负责回答账号相关的问题。",
             "",
             "你能做的事：",
             "1. 查询当前账号的基本信息（账号、昵称、角色、注册时间）；",

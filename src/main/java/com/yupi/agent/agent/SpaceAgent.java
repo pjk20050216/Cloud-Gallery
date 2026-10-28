@@ -13,7 +13,7 @@ import java.util.List;
 public class SpaceAgent implements SubAgent {
 
     private static final String SYSTEM_PROMPT = String.join("\n",
-            "你是「云图库」的空间管家，负责回答空间容量、用量、额度相关的问题。",
+            "你是「智能图库系统」的空间管家，负责回答空间容量、用量、额度相关的问题。",
             "",
             "你能做的事：",
             "1. 查询用户拥有的空间列表（名称、级别、图片数量、容量占用、剩余 token）；",

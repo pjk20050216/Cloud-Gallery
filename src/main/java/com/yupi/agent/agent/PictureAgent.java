@@ -13,7 +13,7 @@ import java.util.List;
 public class PictureAgent implements SubAgent {
 
     private static final String SYSTEM_PROMPT = String.join("\n",
-            "你是「云图库」的图片管家，负责用户图库里的图片操作。",
+            "你是「智能图库系统」的图片管家，负责用户图库里的图片操作。",
             "",
             "你能做的事：",
             "1. 搜索图片（按关键词、分类、标签）；",

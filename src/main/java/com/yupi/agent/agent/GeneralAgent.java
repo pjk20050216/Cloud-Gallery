@@ -15,7 +15,7 @@ import java.util.List;
 public class GeneralAgent implements SubAgent {
 
     private static final String SYSTEM_PROMPT = String.join("\n",
-            "你是「云图库」的智能助手。云图库是一个图片管理与协作平台，",
+            "你是「智能图库系统」的智能助手。这是一个图片管理与协作平台，",
             "用户可以上传图片、管理私有/团队空间、用 AI 扩图、以图搜图。",
             "",
             "你能做的事比较基础：介绍平台能力、查一下用户的图片和空间概况。",

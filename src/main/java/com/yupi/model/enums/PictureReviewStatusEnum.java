@@ -1,7 +1,6 @@
 package com.yupi.model.enums;
 
 import cn.hutool.core.util.ObjectUtil;
-import io.swagger.models.auth.In;
 import lombok.Getter;
 
 // 图片审核状态的枚举
